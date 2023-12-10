@@ -3,9 +3,9 @@
 🍉 is a simple relation database, inspired by miniob.
 
 ```rust
-\\ run server
+// run server
 cargo run --bin waterdb-server
 
-\\ run client
+// run client
 cargo run --bin waterdb-cli
 ```
