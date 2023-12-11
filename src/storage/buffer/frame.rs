@@ -1,4 +1,4 @@
-use std::{sync::Mutex, mem};
+use std::{sync::Mutex, mem, hash::{Hash, Hasher}};
 
 use tracing::debug;
 
@@ -12,6 +12,7 @@ use super::page::{Page, BP_PAGE_DATA_SIZE};
 /// 在 frame 中可以使用 dirty 标记数据是否修改过，并且在 frame 淘汰的时候 sync 到磁盘中
 /// 
 /// 为了防止 frame 在使用的时候被淘汰，可以使用 pin count 表示当前页面被谁使用了
+#[derive(Debug)]
 pub struct Frame {
     dirty: bool,
     pin_count: Mutex<u32>,
@@ -20,7 +21,7 @@ pub struct Frame {
     page: Page,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct FrameId {
     pub file_desc: i32,
     pub page_num: PageNum,
@@ -34,12 +35,19 @@ impl FrameId {
         }
     }
 
-    pub fn hash(&self) -> u64 {
-        ((self.file_desc as u64) << 32) | self.page_num as u64
-    }
+    // pub fn hash(&self) -> u64 {
+    //     ((self.file_desc as u64) << 32) | self.page_num as u64
+    // }
 
     pub fn to_string(&self) -> String {
         format!("fd: {}, page_num: {}", self.file_desc, self.page_num)
+    }
+}
+
+impl Hash for FrameId {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.file_desc.hash(state);
+        self.page_num.hash(state);
     }
 }
 
@@ -93,6 +101,15 @@ impl Frame {
 impl Frame {
     pub fn reinit() -> () {}
     pub fn reset() -> () {}
+
+    pub fn new() -> Frame {
+        Frame {
+            dirty: false,
+            pin_count: Mutex::new(0),
+            file_desc: -1,
+            page: Page::new()
+        }
+    }
 
     pub fn clear_page(&mut self) -> () {
         self.page = unsafe { mem::zeroed() }
