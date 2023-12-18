@@ -1,6 +1,6 @@
 pub const DEFAULT_PORT: &str = "3306";
 pub const DEFAULT_IP: &str = "127.0.0.1";
-pub const  DEFAULT_PROMPT: &str = "waterdb";
+pub const DEFAULT_PROMPT: &str = "waterdb";
 
 pub mod client;
 
