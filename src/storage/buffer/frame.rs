@@ -89,7 +89,7 @@ impl Frame {
         self.dirty
     }
 
-    pub fn data(&self) -> &[char; BP_PAGE_DATA_SIZE] {
+    pub fn data(&self) -> &[u8; BP_PAGE_DATA_SIZE] {
         &self.page.data
     }
 
