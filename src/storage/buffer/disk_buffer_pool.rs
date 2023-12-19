@@ -2,14 +2,9 @@ use std::{collections::HashSet, fs::File, io::Write, os::fd::AsRawFd, sync::Mute
 
 use tracing::info;
 
-use crate::common::consts::StatusCode;
 use crate::common::types::PageNum;
 
-use super::{
-    frame::{Frame, FrameId},
-    frame_manager::BPFileHeader,
-    page::Page,
-};
+use super::{frame::Frame, frame_manager::BPFileHeader, page::Page};
 
 #[derive(Debug)]
 pub struct DiskBufferPool {
@@ -46,7 +41,7 @@ impl DiskBufferPool {
         let file = File::open(file_name.clone())?;
         let fd = file.as_raw_fd();
 
-        let hdr_frame = Frame::new();
+        let mut hdr_frame = Frame::new();
         hdr_frame.set_file_desc(fd);
         hdr_frame.set_page_num(0);
 
@@ -57,6 +52,8 @@ impl DiskBufferPool {
 
             file_header: BPFileHeader::from(Page::new().data),
             disposed_pages: HashSet::new(),
+
+            header_frame: Frame::new(),
 
             lock: Mutex::new(0),
         };

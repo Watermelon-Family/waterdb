@@ -1,6 +1,6 @@
 pub const DEFAULT_PORT: &str = "3306";
 pub const DEFAULT_IP: &str = "127.0.0.1";
-pub const  DEFAULT_PROMPT: &str = "waterdb";
+pub const DEFAULT_PROMPT: &str = "waterdb";
 
 pub mod client;
 
@@ -19,6 +19,8 @@ pub use frame::Frame;
 pub mod storage;
 
 pub mod common;
+
+pub mod sql;
 
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
