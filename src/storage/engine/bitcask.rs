@@ -1,8 +1,6 @@
 use std::{path::PathBuf, fs};
 
-use crate::storage::{Engine, Status};
-
-use super::{log::Log, KeyDir, iterator::ScanIterator};
+use super::{log::Log, KeyDir, iterator::ScanIterator, Status, Engine};
 
 pub struct Bitcask {
     log: Log,
@@ -139,7 +137,7 @@ impl Bitcask {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::Engine;
+    use crate::storage::engine::Engine;
 
     use super::Bitcask;
 
