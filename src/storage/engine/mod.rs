@@ -1,5 +1,7 @@
 use serde_derive::{Serialize, Deserialize};
 
+use crate::error::Result;
+
 mod bitcask;
 
 mod log;
@@ -26,19 +28,19 @@ pub struct Status {
 }
 
 pub trait Engine: std::fmt::Display + Send + Sync {
-    type ScanIterator<'a>: DoubleEndedIterator<Item = crate::Result<(Vec<u8>, Vec<u8>)>> + 'a
+    type ScanIterator<'a>: DoubleEndedIterator<Item = Result<(Vec<u8>, Vec<u8>)>> + 'a
     where
         Self: 'a;
     
-    fn delete(&mut self, key: &[u8]) -> crate::Result<()>;
+    fn delete(&mut self, key: &[u8]) -> Result<()>;
 
-    fn get(&mut self, key: &[u8]) -> crate::Result<Option<Vec<u8>>>;
+    fn get(&mut self, key: &[u8]) -> Result<Option<Vec<u8>>>;
 
-    fn set(&mut self, key: &[u8], value: Vec<u8>) -> crate::Result<()>;
+    fn set(&mut self, key: &[u8], value: Vec<u8>) -> Result<()>;
 
-    fn flush(&mut self) -> crate::Result<()>;
+    fn flush(&mut self) -> Result<()>;
 
     fn scan<R: std::ops::RangeBounds<Vec<u8>>>(&mut self, range: R) -> Self::ScanIterator<'_>;
 
-    fn status(&mut self) -> crate::Result<Status>;
+    fn status(&mut self) -> Result<Status>;
 }

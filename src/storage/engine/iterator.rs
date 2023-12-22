@@ -1,3 +1,5 @@
+use crate::error::Result;
+
 use super::log::Log;
 
 pub struct ScanIterator<'a> {
@@ -20,7 +22,7 @@ impl<'a> ScanIterator<'a> {
 }
 
 impl<'a> Iterator for ScanIterator<'a> {
-    type Item = crate::Result<(Vec<u8>, Vec<u8>)>;
+    type Item = Result<(Vec<u8>, Vec<u8>)>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().map(|item| self.map(item))

@@ -1,5 +1,7 @@
 use std::{path::PathBuf, fs};
 
+use crate::error::Result;
+
 use super::{log::Log, KeyDir, iterator::ScanIterator, Status, Engine};
 
 pub struct Bitcask {
@@ -8,13 +10,13 @@ pub struct Bitcask {
 }
 
 impl Bitcask {
-    pub fn new(path: PathBuf) -> crate::Result<Bitcask> {
+    pub fn new(path: PathBuf) -> Result<Bitcask> {
         let mut log = Log::new(path)?;
         let keydir = log.build_keydir()?;
         Ok(Bitcask { log, keydir })
     }
 
-    pub fn new_compact(path: PathBuf, garbage_ratio_threshold: f64) -> crate::Result<Bitcask> {
+    pub fn new_compact(path: PathBuf, garbage_ratio_threshold: f64) -> Result<Bitcask> {
         let mut bitcask = Bitcask::new(path)?;
         
         let status = bitcask.status()?;
@@ -43,13 +45,13 @@ impl Bitcask {
 impl Engine for Bitcask {
     type ScanIterator<'a> = ScanIterator<'a>;
 
-    fn delete(&mut self, key: &[u8]) -> crate::Result<()> {
+    fn delete(&mut self, key: &[u8]) -> Result<()> {
         let _ = self.log.write_entry(key, None)?;
         self.keydir.remove(key);
         Ok(())
     }
 
-    fn get(&mut self, key: &[u8]) -> crate::Result<Option<Vec<u8>>> {
+    fn get(&mut self, key: &[u8]) -> Result<Option<Vec<u8>>> {
         if let Some((value_pos, value_len)) = self.keydir.get(key) {
             Ok(Some(self.log.read_value(*value_pos, *value_len)?))
         } else {
@@ -57,14 +59,14 @@ impl Engine for Bitcask {
         }
     }
 
-    fn set(&mut self, key: &[u8], value: Vec<u8>) -> crate::Result<()> {
+    fn set(&mut self, key: &[u8], value: Vec<u8>) -> Result<()> {
         let (pos, len) = self.log.write_entry(key, Some(&value))?;
         let value_len = value.len() as u32;
         self.keydir.insert(key.to_vec(), (pos + len as u64 - value_len as u64, value_len));
         Ok(())
     }
 
-    fn flush(&mut self) -> crate::Result<()> {
+    fn flush(&mut self) -> Result<()> {
         self.log.flush()
     }
 
@@ -72,7 +74,7 @@ impl Engine for Bitcask {
         ScanIterator::new(self.keydir.range(range), &mut self.log)
     }
 
-    fn status(&mut self) -> crate::Result<Status> {
+    fn status(&mut self) -> Result<Status> {
         let name = self.to_string();
         let keys = self.keydir.len() as u64;
 
@@ -106,7 +108,7 @@ impl std::fmt::Display for Bitcask {
 /// 与 Bitcask 压缩有关的函数
 impl Bitcask {
     /// 将 bitcask 进行压缩
-    pub fn compact(&mut self) -> crate::Result<()> {
+    pub fn compact(&mut self) -> Result<()> {
         let mut tmp_path = self.log.path.clone();
         let _ = tmp_path.set_extension("compact");
 
@@ -121,7 +123,7 @@ impl Bitcask {
     }
 
     /// 重新写入一份 log，并且构造对应的 keydir
-    fn write_log(&mut self, path: PathBuf) -> crate::Result<(Log, KeyDir)> {
+    fn write_log(&mut self, path: PathBuf) -> Result<(Log, KeyDir)> {
         let mut new_log = Log::new(path)?;
         let mut new_keydir = KeyDir::new();
 
@@ -137,7 +139,7 @@ impl Bitcask {
 
 #[cfg(test)]
 mod tests {
-    use crate::storage::engine::Engine;
+    use crate::{storage::engine::Engine, error::Result};
 
     use super::Bitcask;
 
@@ -173,7 +175,7 @@ mod tests {
                 (b"c".to_vec(), vec![0x03]),
                 (b"d".to_vec(), vec![0x04]),
             ],
-            s.scan(..).collect::<crate::Result<Vec<_>>>()?,
+            s.scan(..).collect::<Result<Vec<_>>>()?,
         );
 
         Ok(())

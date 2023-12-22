@@ -18,6 +18,10 @@ pub use frame::Frame;
 
 pub mod storage;
 
+pub mod error;
+
+pub mod sql;
+
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 
 pub type Result<T> = std::result::Result<T, Error>;
