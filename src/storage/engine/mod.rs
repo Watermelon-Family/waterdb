@@ -2,7 +2,7 @@ use serde_derive::{Serialize, Deserialize};
 
 use crate::error::Result;
 
-mod bitcask;
+pub mod bitcask;
 
 mod log;
 

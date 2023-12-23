@@ -1,6 +1,6 @@
 use std::{sync::MutexGuard, ops::Bound};
 
-use crate::{storage::engine::Engine, error::{Result, Error}};
+use crate::{storage::{engine::Engine, bincode}, error::{Result, Error}};
 
 use super::{transaction::TransactionState, key::{Version, Key}};
 

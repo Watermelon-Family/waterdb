@@ -2,9 +2,9 @@ use std::{sync::{Arc, Mutex, MutexGuard}, collections::HashSet, ops::{RangeBound
 
 use serde_derive::{Serialize, Deserialize};
 
-use crate::{storage::engine::{Engine, self}, error::{Result, Error}};
+use crate::{storage::{engine::Engine, bincode}, error::{Result, Error}};
 
-use super::{key::{Version, Key, KeyPrefix, self}, iterator::Scan};
+use super::{key::{Version, Key, KeyPrefix}, iterator::Scan};
 
 pub struct Transaction<E: Engine> {
     pub engine: Arc<Mutex<E>>,
@@ -70,6 +70,7 @@ impl<E: Engine> Transaction<E> {
             }
             version = as_of;
             if let Some(versions) = session.get(&Key::TxnActiveSnapshot(version).encode()?)? {
+        println!("in a");
                 active = bincode::deserialize(&versions)?;
             }
         } else {
@@ -169,20 +170,18 @@ impl<E: Engine> Transaction<E> {
 
     pub fn get(&self, key: &[u8]) -> Result<Option<Vec<u8>>> {
         let mut session = self.engine.lock()?;
-
         let from = Key::Version(key.into(), 0).encode()?;
-        let to = Key::Version(key.into(), self.version()).encode()?;
-        let mut scanner = session.scan(from..to).rev();
-
-        while let Some((key, value)) = scanner.next().transpose()? {
+        let to = Key::Version(key.into(), self.st.version).encode()?;
+        let mut scan = session.scan(from..=to).rev();
+        while let Some((key, value)) = scan.next().transpose()? {
             match Key::decode(&key)? {
                 Key::Version(_, version) => {
                     if self.st.is_visible(version) {
-                        return bincode::deserialize(&value)?;
+                        return bincode::deserialize(&value);
                     }
-                },
+                }
                 key => return Err(Error::Internal(format!("Expected Key::Version got {:?}", key))),
-            }
+            };
         }
         Ok(None)
     }
