@@ -70,7 +70,6 @@ impl<E: Engine> Transaction<E> {
             }
             version = as_of;
             if let Some(versions) = session.get(&Key::TxnActiveSnapshot(version).encode()?)? {
-        println!("in a");
                 active = bincode::deserialize(&versions)?;
             }
         } else {
