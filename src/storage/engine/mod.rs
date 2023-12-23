@@ -43,4 +43,15 @@ pub trait Engine: std::fmt::Display + Send + Sync {
     fn scan<R: std::ops::RangeBounds<Vec<u8>>>(&mut self, range: R) -> Self::ScanIterator<'_>;
 
     fn status(&mut self) -> Result<Status>;
+
+    fn scan_prefix(&mut self, prefix: &[u8]) -> Self::ScanIterator<'_> {
+        let start = std::ops::Bound::Included(prefix.to_vec());
+        let end = match prefix.iter().rposition(|b| *b != 0xff) {
+            Some(i) => std::ops::Bound::Excluded(
+                prefix.iter().take(i).copied().chain(std::iter::once(prefix[i] + 1)).collect(),
+            ),
+            None => std::ops::Bound::Unbounded,
+        };
+        self.scan((start, end))
+    }
 }
