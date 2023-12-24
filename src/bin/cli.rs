@@ -1,7 +1,7 @@
 use std::io::Write;
 
 use tracing::debug;
-use tracing_subscriber::{layer::SubscriberExt, fmt, util::SubscriberInitExt};
+use tracing_subscriber::{fmt, layer::SubscriberExt, util::SubscriberInitExt};
 use waterdb::client::Client;
 
 #[tokio::main]

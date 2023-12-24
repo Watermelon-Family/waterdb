@@ -6,6 +6,8 @@ pub mod client;
 
 pub mod server;
 
+pub mod sql;
+
 mod connection;
 
 pub use connection::Connection;

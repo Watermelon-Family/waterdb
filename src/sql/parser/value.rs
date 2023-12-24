@@ -1,8 +1,8 @@
-use log::{debug, error, info, trace, warn};
-use std::str::FromStr;
+use log::warn;
+use std::{fmt, str::FromStr};
 
 // 属性的类型
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum AttrType {
     UNDEFINED,
     CHARS,    // 字符串类型
@@ -19,28 +19,21 @@ impl AttrType {
             AttrType::INTS => "ints",
             AttrType::FLOATS => "floats",
             AttrType::BOOLEANS => "booleans",
-            _ => "unknown",
         }
     }
 }
-
-impl FromStr for AttrType {
-    type Err = ();
-
-    fn attr_type_from_string(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "undefined" => Ok(AttrType::UNDEFINED),
-            "chars" => Ok(AttrType::CHARS),
-            "ints" => Ok(AttrType::INTS),
-            "floats" => Ok(AttrType::FLOATS),
-            "booleans" => Ok(AttrType::BOOLEANS),
-            _ => Err(()),
-        }
+fn attr_type_from_string(s: &str) -> AttrType {
+    match s {
+        "chars" => AttrType::CHARS,
+        "ints" => AttrType::INTS,
+        "floats" => AttrType::FLOATS,
+        "booleans" => AttrType::BOOLEANS,
+        _ => AttrType::UNDEFINED,
     }
 }
 
 // 属性的值
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct Value {
     attr_type: AttrType,
     length: usize,
@@ -48,11 +41,21 @@ pub struct Value {
     str_value: String,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 enum NumValue {
     IntValue(i32),
     FloatValue(f32),
     BoolValue(bool),
+}
+
+impl fmt::Display for NumValue {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            NumValue::IntValue(value) => write!(f, "{}", value),
+            NumValue::FloatValue(value) => write!(f, "{}", value),
+            NumValue::BoolValue(value) => write!(f, "{}", value),
+        }
+    }
 }
 
 impl Value {
@@ -73,7 +76,7 @@ impl Value {
         match self.attr_type {
             AttrType::CHARS => {
                 self.str_value = data.to_string();
-                if len > 0 {
+                if length > 0 {
                     self.length = length;
                 } else {
                     self.length = self.str_value.len();
@@ -95,7 +98,7 @@ impl Value {
                 self.length = length;
             }
             _ => {
-                info!("AttrType Error in func set_data()");
+                warn!("unknown data type: {:?}", self.attr_type);
             }
         }
     }
@@ -131,8 +134,8 @@ impl Value {
             AttrType::BOOLEANS => self.num_value.to_string(),
             AttrType::CHARS => self.str_value.clone(),
             _ => {
-                info!("unsupported attr type: {:?}", self.attr_type);
-                String::from("unsupported")
+                warn!("unsupported attr type: {:?}", self.attr_type);
+                String::from("")
             }
         }
     }
@@ -141,43 +144,37 @@ impl Value {
         if self.attr_type == other.attr_type {
             match (&self.attr_type, &self.num_value, &other.num_value) {
                 (AttrType::INTS, NumValue::IntValue(val1), NumValue::IntValue(val2)) => {
-                    val1.cmp(val2)
+                    val1.cmp(val2) as i32
                 }
                 (AttrType::FLOATS, NumValue::FloatValue(val1), NumValue::FloatValue(val2)) => {
-                    val1.partial_cmp(val2).unwrap_or(0)
+                    val1.partial_cmp(val2).unwrap() as i32
                 }
                 (AttrType::BOOLEANS, NumValue::BoolValue(val1), NumValue::BoolValue(val2)) => {
-                    val1.cmp(val2)
+                    val1.cmp(val2) as i32
                 }
-                (AttrType::CHARS, _, _) => self.str_value.cmp(&other.str_value),
+                (AttrType::CHARS, _, _) => self.str_value.cmp(&other.str_value) as i32,
                 _ => {
-                    // Handle other cases if needed
-                    0
+                    warn!("not supported");
+                    -1
                 }
             }
-        } else if self.attr_type == AttrType::INTS && other.attr_type == AttrType::FLOATS {
-            if let NumValue::FloatValue(val2) = &other.num_value {
-                if let NumValue::IntValue(val1) = &self.num_value {
-                    val1.partial_cmp(val2).unwrap_or(0)
-                } else {
-                    0
-                }
-            } else {
-                0
-            }
-        } else if self.attr_type == AttrType::FLOATS && other.attr_type == AttrType::INTS {
+        } else if let NumValue::FloatValue(val2) = &other.num_value {
             if let NumValue::IntValue(val1) = &self.num_value {
-                if let NumValue::FloatValue(val2) = &other.num_value {
-                    val1.partial_cmp(val2).unwrap_or(0)
-                } else {
-                    0
-                }
+                (&(*val1 as f32)).partial_cmp(val2).unwrap() as i32
             } else {
-                0
+                warn!("not supported");
+                -1
+            }
+        } else if let NumValue::IntValue(val1) = &other.num_value {
+            if let NumValue::FloatValue(val2) = &self.num_value {
+                val2.partial_cmp(&(*val1 as f32)).unwrap() as i32
+            } else {
+                warn!("not supported");
+                -1
             }
         } else {
-            // Handle other cases if needed
-            0
+            warn!("not supported");
+            -1
         }
     }
 
@@ -203,27 +200,47 @@ impl Value {
     }
 
     pub fn get_boolean(&self) -> bool {
-        match &self.AttrType {
-            AttrType::INTS => self.num_value.cmp(0),
-            AttrType::FLOATS => self.num_value.cmp(0),
-            AttrType::CHARS => self.num_value.cmp(0),
-            AttrType::BOOLEANS => self.str_value.is_empty(),
+        match &self.attr_type {
+            AttrType::CHARS => match &self.str_value.parse::<i32>() {
+                Ok(val) => val != &0,
+                Err(e) => {
+                    warn!(
+                        "failed to convert string to float or integer. s={:?}, ex={:?}",
+                        &self.str_value,
+                        e.clone()
+                    );
+                    false
+                }
+            },
+            _ => match &self.num_value {
+                NumValue::IntValue(val) => val != &0,
+                NumValue::FloatValue(val) => val != &0.0,
+                NumValue::BoolValue(val) => *val,
+            },
         }
     }
 }
 
-fn main() {
+#[test]
+fn test() {
+    env_logger::Builder::new()
+        .filter_level(log::LevelFilter::Warn)
+        .init();
+
     // Example usage
-    let mut value = Value::new();
-    value.set_int(42);
-    println!("Int value: {}", value.get_int());
+    let mut value1 = Value::new();
+    let mut value2 = Value::new();
+    value1.set_int(42);
+    println!("Int value: {}", value1.get_int());
 
-    value.set_float(3.14);
-    println!("Float value: {}", value.get_float());
+    value2.set_boolean(true);
+    println!("Bool value: {}", value2.get_boolean());
 
-    value.set_boolean(true);
-    println!("Boolean value: {}", value.get_boolean());
+    // value.set_boolean(true);
+    // println!("Boolean value: {}", value.get_boolean());
 
-    value.set_string("Hello, Rust!");
-    println!("String value: {}", value.get_string());
+    // value.set_string("Hello, Rust!");
+    // println!("String value: {}", value.get_string());
+
+    println!("{:?}", value1.compare(&value2))
 }
