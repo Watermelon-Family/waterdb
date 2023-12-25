@@ -4,11 +4,11 @@ use std::{fmt, str::FromStr};
 // 属性的类型
 #[derive(Debug, PartialEq, Eq)]
 pub enum AttrType {
-    UNDEFINED,
-    CHARS,    // 字符串类型
-    INTS,     // 整数类型(4字节)
-    FLOATS,   // 浮点数类型(4字节)
-    BOOLEANS, // boolean类型，当前不是由parser解析出来的，是程序内部使用的
+    UNDEFINED, // 为定义类型(默认1字节)
+    CHARS,     // 字符串类型(默认65535字节)
+    INTS,      // 整数类型(4字节)
+    FLOATS,    // 浮点数类型(4字节)
+    BOOLEANS,  // boolean类型(1字节)
 }
 
 impl AttrType {

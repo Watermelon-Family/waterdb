@@ -21,3 +21,4 @@ tracing = "0.1.34"
 tracing-subscriber = { version = "0.3.11", features = ["env-filter"] }
 log = "0.4.20"
 env_logger="0.10.1"
+sqlparser = "0.41.0"
