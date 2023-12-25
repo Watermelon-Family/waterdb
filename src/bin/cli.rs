@@ -2,7 +2,7 @@ use std::io::Write;
 
 use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, fmt, util::SubscriberInitExt};
-use waterdb::client::Client;
+use waterdb::{client::Client, Frame};
 
 #[tokio::main]
 async fn main() -> waterdb::Result<()> {
@@ -26,7 +26,17 @@ async fn main() -> waterdb::Result<()> {
             break;
         } else {
             let response = client.run(line).await?;
-            println!("{:?}", response);
+            match response {
+                Frame::String(ref response) => {
+                    let lines: Vec<&str> = response.split('\n').collect();
+                    for line in lines {
+                        println!("{}", line);
+                    }
+                },
+                Frame::Error(ref err) => {
+                    eprintln!("{}", err);
+                }
+            }
         }
     }
 

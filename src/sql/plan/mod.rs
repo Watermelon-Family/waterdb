@@ -30,9 +30,9 @@ impl Plan {
     }
 
     /// 优化，例如谓词下推等等，目前暂时不优化
-    pub fn optimize<C: Catalog>(self, catalog: &mut C) -> Result<Self> {
-        let mut root = self.0;
-        Ok(Plan(root))
+    pub fn optimize<C: Catalog>(self, _catalog: &mut C) -> Result<Self> {
+        // let mut root = self.0;
+        Ok(Plan(self.0))
     }
 }
 

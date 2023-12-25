@@ -53,7 +53,7 @@ impl<E: Engine + 'static> Session<E> {
                 txn.rollback()?;
                 Ok(ResultSet::Rollback { version })
             }
-            ast::Statement::Explain(_) => self.read_with_txn(|txn| {
+            ast::Statement::Explain(_) => self.read_with_txn(|_txn| {
                 unimplemented!()
             }),
             statement if self.txn.is_some() => Plan::build(statement, self.txn.as_mut().unwrap())?
@@ -114,6 +114,7 @@ mod tests {
             "INSERT INTO t VALUES (1, 'haha')",
             "INSERT INTO t VALUES (2, 'nana')",
             "INSERT INTO t VALUES (3, 'gaga')",
+            "UPDATE t SET id=3 WHERE id=1",
             "SELECT * FROM t;"
         ];
         for query in queries {
