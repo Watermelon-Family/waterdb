@@ -1,3 +1,5 @@
+pub mod expression;
+
 use crate::error::{Error, Result};
 
 use serde_derive::{Deserialize, Serialize};
@@ -5,7 +7,7 @@ use std::borrow::Cow;
 use std::cmp::Ordering;
 use std::hash::{Hash, Hasher};
 
-/// A datatype
+/// waterdb 的支持的数据类型
 #[derive(Clone, Debug, Hash, PartialEq, Serialize, Deserialize)]
 pub enum DataType {
     Boolean,
@@ -25,7 +27,7 @@ impl std::fmt::Display for DataType {
     }
 }
 
-/// A specific value of a data type
+/// waterdb 支持的 Value
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Value {
     Null,
@@ -64,7 +66,7 @@ impl<'a> From<&'a Value> for Cow<'a, Value> {
 }
 
 impl Value {
-    /// Returns the value's datatype, or None for null values
+    /// 返回 DataType，对于 Null 类型返回 None
     pub fn datatype(&self) -> Option<DataType> {
         match self {
             Self::Null => None,
@@ -75,7 +77,7 @@ impl Value {
         }
     }
 
-    /// Returns the inner boolean, or an error if not a boolean
+    /// 返回 boolean 类型的值，其他报错
     pub fn boolean(self) -> Result<bool> {
         match self {
             Self::Boolean(b) => Ok(b),
@@ -83,7 +85,7 @@ impl Value {
         }
     }
 
-    /// Returns the inner float, or an error if not a float
+    /// 返回 float 类型的值，其他报错
     pub fn float(self) -> Result<f64> {
         match self {
             Self::Float(f) => Ok(f),
@@ -91,7 +93,7 @@ impl Value {
         }
     }
 
-    /// Returns the inner integer, or an error if not an integer
+    /// 返回 integer 类型的值，其他报错
     pub fn integer(self) -> Result<i64> {
         match self {
             Self::Integer(i) => Ok(i),
@@ -99,7 +101,7 @@ impl Value {
         }
     }
 
-    /// Returns the inner string, or an error if not a string
+    /// 返回 string 类型的值，其他报错
     pub fn string(self) -> Result<String> {
         match self {
             Self::String(s) => Ok(s),
@@ -124,6 +126,7 @@ impl std::fmt::Display for Value {
     }
 }
 
+/// 实现元素之前的比较，实现 broadcast
 impl PartialOrd for Value {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         match (self, other) {
@@ -171,17 +174,17 @@ impl From<&str> for Value {
     }
 }
 
-/// A row of values
+/// 定义行数据的表示
 pub type Row = Vec<Value>;
 
-/// A row iterator
+/// 行数据的迭代器
 pub type Rows = Box<dyn Iterator<Item = Result<Row>> + Send>;
 
-/// A column (in a result set, see schema::Column for table columns)
+/// table 属性名字
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Column {
     pub name: Option<String>,
 }
 
-/// A set of columns
+/// table 属性
 pub type Columns = Vec<Column>;
