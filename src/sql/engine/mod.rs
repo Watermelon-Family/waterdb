@@ -36,5 +36,3 @@ pub trait Transaction: Catalog {
 }
 
 pub type Scan = Box<dyn DoubleEndedIterator<Item = Result<Row>> + Send>;
-
-pub type IndexScan = Box<dyn DoubleEndedIterator<Item = Result<(Value, HashSet<Value>)>> + Send>;

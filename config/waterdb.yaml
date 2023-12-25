@@ -2,4 +2,4 @@ default_port: 3306
 default_ip: 127.0.0.1
 default_prompt: waterdb
 
-data_dir: ./data
+data_dir: ./target/data
