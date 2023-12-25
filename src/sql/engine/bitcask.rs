@@ -8,7 +8,6 @@ use crate::storage::mvcc::mvcc::MVCC;
 use crate::storage::{self, bincode, keycode};
 
 use serde::{Deserialize, Serialize};
-use serde_derive::{Deserialize, Serialize};
 use std::borrow::Cow;
 use std::clone::Clone;
 

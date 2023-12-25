@@ -1,5 +1,6 @@
 use std::future::Future;
-use std::sync::Arc;
+use std::path::Path;
+use std::sync::{Arc};
 
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, mpsc, Semaphore};
@@ -7,26 +8,32 @@ use tokio::time::{self, Duration};
 use tracing::{info, error, debug};
 
 use crate::Frame;
+use crate::error::Result;
+use crate::sql::engine::Engine;
+use crate::sql::engine::bitcask::KV;
+use crate::sql::execution::ResultSet;
+use crate::sql::session::Session;
+use crate::storage::engine::bitcask::Bitcask;
 use crate::{Connection, shutdown::Shutdown};
 
-#[derive(Debug)]
-struct Listener {
+struct Listener<E: crate::storage::engine::Engine> {
     listener: TcpListener,
+    db_holder: KV<E>,
     limit_connections: Arc<Semaphore>,
     notify_shutdown: broadcast::Sender<()>,
     shutdown_complete_tx: mpsc::Sender<()>,
 }
 
-#[derive(Debug)]
-struct Handler {
+struct Handler<E: crate::storage::engine::Engine + 'static> {
     connection: Connection,
+    session: Session<KV<E>>,
     shutdown: Shutdown,
     _shutdown_complete: mpsc::Sender<()>,
 }
 
 const MAX_CONNECTIONS: usize = 256;
 
-impl Listener {
+impl<E: crate::storage::engine::Engine + 'static> Listener<E> {
     async fn run(&mut self) -> crate::Result<()> {
         info!("accepting inbound connections");
 
@@ -42,6 +49,7 @@ impl Listener {
 
             let mut handler = Handler {
                 connection: Connection::new(socket),
+                session: self.db_holder.session()?,
                 shutdown: Shutdown::new(self.notify_shutdown.subscribe()),
                 _shutdown_complete: self.shutdown_complete_tx.clone(),
             };
@@ -75,7 +83,7 @@ impl Listener {
     }
 }
 
-impl Handler {
+impl<E: crate::storage::engine::Engine + 'static> Handler<E> {
     async fn run(&mut self) -> crate::Result<()> {
         while !self.shutdown.is_shutdown() {
             let maybe_sql = tokio::select! {
@@ -92,6 +100,35 @@ impl Handler {
                         debug!("[maybe_sql] {:?}", string);
                         self.connection.write(&Frame::String("PONG".to_string())).await?;
                     }
+                    let response = tokio::task::block_in_place(|| {
+                        let mut response = None;
+                        let mut result_set = self.session.execute(&string);
+                        match &mut result_set {
+                            Ok(result_set) => {
+                                match result_set {
+                                    ResultSet::Query { columns, rows: ref mut resultrows } => {
+                                        let schema = columns.iter().map(|c| c.name.clone().unwrap()).collect::<Vec<_>>();
+                                        let schema = schema.join(" | ");
+
+                                        let resultrows = std::mem::replace(resultrows, Box::new(std::iter::empty()));
+                                        let rows = resultrows.map(|row| format!("{:?}", row.unwrap())).collect::<Vec<_>>().join("\n");
+                                        response = Some(format!("{}\n{}", schema, rows));
+                                    },
+                                    other => {
+                                        response = Some(format!("{:?}", other));
+                                    }
+                                }                                
+                            },
+                            Err(e) => {
+                                response = Some(e.to_string());
+                            }
+                        };
+                        response
+                    });
+                    if let Some(response) = response {
+                        debug!(?response);
+                        self.connection.write(&Frame::String(response)).await?;
+                    }
                 }
             }
         }
@@ -99,12 +136,16 @@ impl Handler {
     }
 }
 
-pub async fn run(listener: TcpListener, shutdown: impl Future) {
+pub async fn run(listener: TcpListener, shutdown: impl Future, data_path: &Path) -> Result<()> {
     let (notify_shutdown, _) = broadcast::channel(1);
     let (shutdown_complete_tx, mut shutdown_complete_rx) = mpsc::channel(1);
 
+    let engine = Bitcask::new(data_path.to_path_buf())?;
+    let db_gruad = KV::new(engine);
+
     let mut server = Listener {
         listener,
+        db_holder: db_gruad,
         limit_connections: Arc::new(Semaphore::new(MAX_CONNECTIONS)),
         notify_shutdown,
         shutdown_complete_tx,
@@ -131,4 +172,6 @@ pub async fn run(listener: TcpListener, shutdown: impl Future) {
     drop(shutdown_complete_tx);
 
     let _ = shutdown_complete_rx.recv().await;
+
+    Ok(())
 }

@@ -779,16 +779,3 @@ impl Operator for PostfixOperator {
         8
     }
 }
-
-// Formats an identifier by quoting it as appropriate
-pub(super) fn format_ident(ident: &str) -> String {
-    lazy_static! {
-        static ref RE_IDENT: Regex = Regex::new(r#"^\w[\w_]*$"#).unwrap();
-    }
-
-    if RE_IDENT.is_match(ident) && Keyword::from_str(ident).is_none() {
-        ident.to_string()
-    } else {
-        format!("\"{}\"", ident.replace('\"', "\"\""))
-    }
-}

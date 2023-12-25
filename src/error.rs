@@ -49,6 +49,12 @@ impl From<Box<bincode::ErrorKind>> for Error {
     }
 }
 
+impl From<config::ConfigError> for Error {
+    fn from(err: config::ConfigError) -> Self {
+        Error::Config(err.to_string())
+    }
+}
+
 impl From<log::ParseLevelError> for Error {
     fn from(err: log::ParseLevelError) -> Self {
         Error::Config(err.to_string())
