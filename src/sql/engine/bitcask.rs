@@ -228,13 +228,11 @@ impl<E: storage::engine::Engine> Catalog for Transaction<E> {
     }
 }
 
-/// SQL keys, using the KeyCode order-preserving encoding. Uses table and column
-/// names directly as identifiers, to avoid additional indirection. It is not
-/// possible to change names, so this is ok. Cow strings allow encoding borrowed
-/// values and decoding into owned values.
 #[derive(Debug, Deserialize, Serialize)]
 enum Key<'a> {
+    /// 用于 Table 元数据原理
     Table(Cow<'a, str>),
+    /// 用于管理 Table 的数据
     Row(Cow<'a, str>, Cow<'a, Value>),
 }
 
@@ -248,8 +246,6 @@ impl<'a> Key<'a> {
     }
 }
 
-/// Key prefixes, allowing prefix scans of specific parts of the keyspace. These
-/// must match the keys -- in particular, the enum variant indexes must match.
 #[derive(Debug, Deserialize, Serialize)]
 enum KeyPrefix<'a> {
     Table,
